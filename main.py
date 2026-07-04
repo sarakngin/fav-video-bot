@@ -11,7 +11,7 @@ app = FastAPI()
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
-    TOKEN = "YOUR_TELEGRAM_TOKEN_HERE"  # Replace with real token
+    TOKEN = "YOUR_TELEGRAM_TOKEN_HERE"
 
 application = Application.builder().token(TOKEN).build()
 
@@ -40,7 +40,7 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ydl.download([text])
 
             watermarked_path = f'{tmpdir}/final.mp4'
-            watermark_text = "fav-video-bot"  # Change this to your bot name
+            watermark_text = "fav-video-bot"
 
             subprocess.run([
                 'ffmpeg', '-i', download_path,
