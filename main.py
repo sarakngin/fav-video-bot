@@ -1,23 +1,12 @@
-from fastapi import FastAPI
+import os
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import yt_dlp
 import asyncio
 import tempfile
-import os
 import subprocess
 
-app = FastAPI()
-
-TOKEN = os.getenv("TOKEN")
-if not TOKEN:
-    TOKEN = "YOUR_TELEGRAM_TOKEN_HERE"  # Replace with real token
-
-application = Application.builder().token(TOKEN).build()
-
-@app.get("/")
-async def root():
-    return {"status": "Bot is running! Watermark enabled."}
+TOKEN = os.getenv("TOKEN") or "YOUR_TELEGRAM_TOKEN_HERE"
 
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
@@ -40,7 +29,7 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ydl.download([text])
 
             watermarked_path = f'{tmpdir}/final.mp4'
-            watermark_text = "fav-video-bot"  # Change to your bot name
+            watermark_text = "fav-video-bot"
 
             subprocess.run([
                 'ffmpeg', '-i', download_path,
@@ -54,14 +43,10 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await status.edit_text(f"❌ Error: {str(e)[:100]}")
 
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_video))
-
-@app.post("/webhook")
-async def webhook(request: dict):
-    update = Update.de_json(request, application.bot)
-    asyncio.create_task(application.process_update(update))
-    return {"ok": True}
+def main():
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_video))
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    main()
