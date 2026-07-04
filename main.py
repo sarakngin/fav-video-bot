@@ -1,18 +1,24 @@
 from fastapi import FastAPI
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!"}
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import yt_dlp
 import asyncio
 import tempfile
 import os
+import subprocess
 
 app = FastAPI()
-TOKEN = "YOUR_TELEGRAM_TOKEN_HERE"   # ← Replace with your real token
+
+# Token from environment or fallback
+TOKEN = os.getenv("TOKEN")
+if not TOKEN:
+    TOKEN = "YOUR_TELEGRAM_TOKEN_HERE"  # Replace with real token if no env var
 
 application = Application.builder().token(TOKEN).build()
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running! Watermark enabled."}
 
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
@@ -34,10 +40,9 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([text])
 
-            # Add watermark
             watermarked_path = f'{tmpdir}/final.mp4'
-            watermark_text = "fav-video-bot"   # ← Change to your bot name
-            import subprocess
+            watermark_text = "fav-video-bot"  # Change to your bot name
+
             subprocess.run([
                 'ffmpeg', '-i', download_path,
                 '-vf', f"drawtext=text='{watermark_text}':fontcolor=white:fontsize=28:box=1:boxcolor=black@0.6:x=10:y=10",
@@ -45,15 +50,15 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ], check=True)
 
             with open(watermarked_path, 'rb') as video:
-                await update.message.reply_video(video, caption="✅ Here is your watermarked video!\n\nSend another link.")
+                await update.message.reply_video(video, caption="✅ Watermarked video ready!\n\nSend another link.")
             await status.delete()
     except Exception as e:
-        await status.edit_text("❌ Sorry, failed to process the video.")
+        await status.edit_text(f"❌ Error: {str(e)[:100]}")
 
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_video))
 
 @app.post("/webhook")
 async def webhook(request: dict):
     update = Update.de_json(request, application.bot)
-    await application.process_update(update)
+    asyncio.create_task(application.process_update(update))
     return {"ok": True}
