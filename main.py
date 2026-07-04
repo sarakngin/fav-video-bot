@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 import yt_dlp
