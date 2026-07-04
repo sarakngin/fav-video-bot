@@ -61,3 +61,7 @@ async def webhook(request: dict):
     update = Update.de_json(request, application.bot)
     asyncio.create_task(application.process_update(update))
     return {"ok": True}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
